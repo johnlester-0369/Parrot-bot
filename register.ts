@@ -1,24 +1,28 @@
-import { REST, Routes } from 'discord.js';
-import * as dotenv from 'dotenv'
+import { REST, Routes } from "discord.js";
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import "dotenv/config";
 
-const dcTK = String(process.env.TOKEN);
-const dcCLi = String(process.env.CLIENT_ID);
+const dTK = process.env.TOKEN!;
+const dCCL = process.env.CLIENT_ID!;
 
-const commands = [
-  {
-    name: 'ping',
-    description: 'Replies with Pong!',
-  },
-];
+const commandsPath = path.join(process.cwd(), "commands");
+const files = readdirSync(commandsPath).filter(f => f.endsWith(".ts"));
 
-const rest = new REST({ version: '10' }).setToken(dcTK);
+const commands = [];
+
+for (const file of files) {
+  const filePath = path.join(commandsPath, file);
+  const { command } = await import(filePath);
+  commands.push(command.data.toJSON());
+}
+
+const rest = new REST({ version: "10" }).setToken(dTK);
 
 try {
-  console.log('Started refreshing application (/) commands.');
-
-  await rest.put(Routes.applicationCommands(dcCLi), { body: commands });
-
-  console.log('Successfully reloaded application (/) commands.');
-} catch (error) {
-  console.error(error);
+  console.log("Uploading slash commands...");
+  await rest.put(Routes.applicationCommands(dCCL), { body: commands });
+  console.log("Uploaded successfully!");
+} catch (err) {
+  console.error(err);
 }
